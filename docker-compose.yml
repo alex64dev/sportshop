@@ -1,0 +1,103 @@
+services:
+  # ──────────────────────────────────────────────
+  # PHP 8.3 — Symfony 7 + API Platform
+  # ──────────────────────────────────────────────
+  php:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: handshop-php
+    volumes:
+      - ./api:/var/www/api
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      APP_ENV: dev
+      APP_SECRET: ${APP_SECRET:-changeme_in_env_file}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://handshop:handshop@db:5432/handshop?serverVersion=16}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-}
+      MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:-^https?://localhost:5173$}
+      MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - handshop
+
+  # ──────────────────────────────────────────────
+  # Nginx — reverse proxy
+  # ──────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: handshop-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./api/public:/var/www/api/public:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+    networks:
+      - handshop
+
+  # ──────────────────────────────────────────────
+  # PostgreSQL 16 (dev local, Neon en prod)
+  # ──────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: handshop-db
+    environment:
+      POSTGRES_DB: handshop
+      POSTGRES_USER: handshop
+      POSTGRES_PASSWORD: handshop
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U handshop"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - handshop
+
+  # ──────────────────────────────────────────────
+  # Frontend — React + Vite
+  # ──────────────────────────────────────────────
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: handshop-front
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./front:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8080/api
+      VITE_STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-}
+    networks:
+      - handshop
+
+  # ──────────────────────────────────────────────
+  # MailHog — emails en dev
+  # ──────────────────────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: handshop-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - handshop
+
+volumes:
+  db_data:
+
+networks:
+  handshop:
+    driver: bridge

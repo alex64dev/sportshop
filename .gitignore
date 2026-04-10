@@ -1,0 +1,28 @@
+# Symfony / PHP
+/api/vendor/
+/api/var/
+/api/.env.local
+/api/.env.*.local
+/api/.php-cs-fixer.cache
+
+# Frontend
+/front/node_modules/
+/front/dist/
+/front/.env.local
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# PR
+.pr-body.md
+
+# Environnement
+.env
+!.env.example

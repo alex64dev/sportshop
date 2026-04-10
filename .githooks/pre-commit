@@ -1,0 +1,60 @@
+#!/usr/bin/env sh
+#
+# 1. Empêche les commits directs sur main / master.
+# 2. Lance PHP CS Fixer + PHPStan sur les fichiers PHP stagés.
+#
+
+# ── Protection de la branche principale ─────
+branch="$(git symbolic-ref --short HEAD 2>/dev/null)"
+
+if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+    echo ""
+    echo "❌ Commit refusé : tu es sur la branche '$branch'."
+    echo ""
+    echo "   Crée une branche dédiée avant de commit :"
+    echo "     git checkout -b feat/ma-feature"
+    echo ""
+    echo "   (Pour bypass dans un cas exceptionnel : git commit --no-verify)"
+    echo ""
+    exit 1
+fi
+
+# ── Vérifications qualité PHP ───────────────
+# On vérifie seulement s'il y a des fichiers PHP stagés
+STAGED_PHP=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.php$' || true)
+
+if [ -n "$STAGED_PHP" ]; then
+    echo "🔍 Vérification du code PHP..."
+    echo ""
+
+    # PHP CS Fixer (dry-run)
+    if docker compose exec -T php vendor/bin/php-cs-fixer fix --dry-run --diff 2>/dev/null; then
+        echo "✅ PHP CS Fixer : OK"
+    else
+        echo ""
+        echo "❌ PHP CS Fixer : des erreurs de style ont été détectées."
+        echo ""
+        echo "   Corrige automatiquement avec :"
+        echo "     make fix"
+        echo ""
+        exit 1
+    fi
+
+    echo ""
+
+    # PHPStan
+    if docker compose exec -T php vendor/bin/phpstan analyse src --level=6 --no-progress 2>/dev/null; then
+        echo "✅ PHPStan : OK"
+    else
+        echo ""
+        echo "❌ PHPStan : des erreurs d'analyse statique ont été détectées."
+        echo ""
+        exit 1
+    fi
+
+    echo ""
+    echo "✅ Toutes les vérifications PHP sont passées."
+    echo ""
+fi
+
+exit 0
