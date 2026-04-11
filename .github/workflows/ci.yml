@@ -122,7 +122,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check frontend exists
+        id: check
+        run: test -f package.json && echo "exists=true" >> "$GITHUB_OUTPUT" || echo "exists=false" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node.js
+        if: steps.check.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -130,12 +135,15 @@ jobs:
           cache-dependency-path: front/package-lock.json
 
       - name: Install dependencies
+        if: steps.check.outputs.exists == 'true'
         run: npm ci
 
       - name: ESLint
+        if: steps.check.outputs.exists == 'true'
         run: npm run lint
 
       - name: Build
+        if: steps.check.outputs.exists == 'true'
         run: npm run build
         env:
           VITE_API_URL: http://localhost:8080/api
