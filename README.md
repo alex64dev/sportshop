@@ -1,6 +1,6 @@
-# 🛒 HandShop — E-commerce associatif avec Stripe
+# HandShop — E-commerce associatif avec Stripe
 
-Boutique en ligne pour un club sportif. Catalogue de produits (maillots, équipements, goodies), panier, paiement sécurisé via Stripe Checkout, et gestion des commandes avec webhooks asynchrones.
+Boutique en ligne pour un club sportif. Catalogue de produits (maillots, équipements, goodies), panier, paiement sécurisé via Stripe Checkout, gestion des commandes avec webhooks asynchrones, et backoffice d'administration complet.
 
 > Conçu comme un module indépendant, intégrable à terme dans le site [Senpereko Eskubaloia](https://senpereko-eskubaloia.com).
 
@@ -8,57 +8,82 @@ Boutique en ligne pour un club sportif. Catalogue de produits (maillots, équipe
 
 | Domaine | Détail |
 |---|---|
-| **Back-end** | PHP 8.3 · Symfony 7 · API Platform |
-| **Front-end** | React · Vite · Tailwind CSS |
+| **Back-end** | PHP 8.3 · Symfony 7 · EasyAdmin 4 |
+| **Front-end** | React · Vite · TypeScript · Tailwind CSS |
 | **Paiement** | Stripe Checkout · Webhooks · signature verification |
 | **Asynchrone** | Symfony Messenger (traitement webhook + emails) |
+| **Sécurité** | CSRF · rate limiting · login throttling · tokens hashés SHA256 |
 | **Base de données** | PostgreSQL 16 (Neon en prod) |
 | **Infrastructure** | Docker Compose · GitHub Actions CI/CD |
+| **Qualité** | PHP CS Fixer · PHPStan niveau 6 · PHPUnit · ESLint |
 | **Déploiement** | Render (API) + Vercel (front) |
 
 ## Architecture
 
 ```
-front/  → Catalogue, panier, checkout (React)  → localhost:5173
-api/    → API REST + Stripe webhooks (Symfony)  → localhost:8080
+front/  → Catalogue, panier, checkout (React SPA)       → localhost:5173
+api/    → API REST + Backoffice admin (Symfony)          → localhost:8080
+        ├── /api/*    Endpoints publics (stateless)
+        └── /admin/*  Backoffice EasyAdmin (stateful, auth requise)
 ```
 
 ## Entités
 
 | Entité | Description |
 |--------|-------------|
-| `Product` | Nom, description, prix, image, stock, catégorie |
-| `ProductVariant` | Taille, couleur, stock par variante |
-| `Cart` / `CartItem` | Panier (session ou user), items avec quantités |
-| `Order` / `OrderItem` | Commande validée, statut, référence Stripe |
-| `Payment` | Stripe session ID, statut, montant, timestamps |
+| `User` | Administrateurs du backoffice (email, rôles, mot de passe hashé, verrouillage, reset token) |
+| `Product` | Nom, description, slug, prix (centimes), image, catégorie (enum), statut actif |
+| `ProductVariant` | Taille, couleur, stock par variante, SKU unique |
+| `Cart` / `CartItem` | Panier anonyme par session (UUID), items avec quantités, validation stock |
+| `Order` / `OrderItem` | Commande validée, référence unique (HS-YYYYMMDD-XXXX), statut, données dénormalisées |
+| `Payment` | Stripe session/payment intent ID, statut, montant, date de paiement |
+| `StripeEventLog` | Idempotence des webhooks (un événement traité une seule fois) |
+
+## Backoffice admin
+
+Le backoffice EasyAdmin (`/admin`) permet de :
+
+- **Gérer les produits** — CRUD complet avec variantes inline (tailles, couleurs, stock)
+- **Suivre les commandes** — Visualisation, mise à jour du statut (expédié, livré)
+- **Consulter les paiements** — Historique Stripe en lecture seule
+- **Gérer les administrateurs** — Ajout, verrouillage de comptes, rôles (admin/super admin)
+- **Dashboard** — Statistiques (commandes du jour, chiffre d'affaires, alertes stock bas)
 
 ## API endpoints
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| `GET` | `/api/products` | Liste des produits (paginée, filtrable) |
-| `GET` | `/api/products/{id}` | Détail d'un produit + variantes |
+| `GET` | `/api/products` | Liste des produits (paginée, filtrable par catégorie) |
+| `GET` | `/api/products/{slug}` | Détail d'un produit + variantes |
 | `POST` | `/api/cart/items` | Ajouter un article au panier |
 | `GET` | `/api/cart` | Contenu du panier |
 | `PATCH` | `/api/cart/items/{id}` | Modifier la quantité |
 | `DELETE` | `/api/cart/items/{id}` | Retirer un article |
 | `POST` | `/api/checkout` | Créer une session Stripe Checkout |
 | `POST` | `/api/stripe/webhook` | Réception des événements Stripe |
-| `GET` | `/api/orders` | Historique des commandes |
-| `GET` | `/api/orders/{id}` | Détail d'une commande |
+| `GET` | `/api/orders/{reference}` | Suivi d'une commande par référence |
 
 ## Flux de paiement
 
 ```
 1. L'utilisateur ajoute des produits au panier
 2. Il clique sur "Commander" → POST /api/checkout
-3. Le back crée une Stripe Checkout Session et renvoie l'URL
+3. Le back crée une Order PENDING + une Stripe Checkout Session et renvoie l'URL
 4. Le front redirige vers la page de paiement Stripe
 5. Stripe envoie un webhook checkout.session.completed
-6. Le back vérifie la signature, dispatch un message Messenger
-7. Le handler crée la commande, met à jour le stock, envoie l'email
+6. Le back vérifie la signature, dispatch un message Messenger (async)
+7. Le handler met à jour la commande (PAID), décrémente le stock, envoie l'email de confirmation
 ```
+
+## Authentification admin
+
+Le système d'authentification du backoffice reprend les mêmes patterns que le site Senpereko Eskubaloia :
+
+- **Connexion** — Formulaire de login avec protection CSRF
+- **Throttling** — 5 tentatives max par 15 minutes
+- **Verrouillage** — Les comptes peuvent être désactivés par un super admin
+- **Reset password** — Token généré (64 chars), stocké hashé en SHA256, expiration 1h, envoi par email
+- **Rôles** — `ROLE_ADMIN` (gestion produits/commandes) et `ROLE_SUPER_ADMIN` (gestion des utilisateurs)
 
 ## Installation locale
 
@@ -84,7 +109,10 @@ cp .env.example .env
 # 3. Lancer le projet
 make install
 
-# 4. Dans un second terminal, écouter les webhooks Stripe
+# 4. Créer un super admin
+docker compose exec php php bin/console app:create-super-admin admin@handshop.dev motdepasse
+
+# 5. Dans un second terminal, écouter les webhooks Stripe
 make stripe-listen
 ```
 
@@ -94,20 +122,35 @@ make stripe-listen
 |---------|-----|
 | Frontend | [localhost:5173](http://localhost:5173) |
 | API | [localhost:8080/api](http://localhost:8080/api) |
+| Backoffice | [localhost:8080/admin](http://localhost:8080/admin) |
 | MailHog | [localhost:8025](http://localhost:8025) |
 
 ### Commandes utiles
 
 ```bash
+# Docker
 make start          # Démarrer les conteneurs
 make stop           # Arrêter les conteneurs
 make logs           # Voir les logs
 make shell          # Shell dans le conteneur PHP
-make lint           # Linting PHP + JS
+
+# Qualité
+make lint           # PHP CS Fixer + PHPStan + ESLint
 make fix            # Correction automatique du style PHP
-make test           # Lancer les tests
+make test           # Lancer les tests PHPUnit
+
+# Base de données
 make db-migrate     # Exécuter les migrations
+make entity         # Créer/modifier une entité Doctrine
+make migration      # Créer un fichier de migration
+make fixtures       # Charger les données de démonstration
+
+# Stripe
 make stripe-listen  # Écouter les webhooks Stripe (dev)
+
+# Git
+make pr             # Créer une pull request
+make pr-merge       # Merger en squash + cleanup
 ```
 
 ## Stripe en mode test
@@ -124,12 +167,15 @@ Date d'expiration : n'importe quelle date future. CVC : n'importe quel nombre à
 
 ## Sécurité
 
-- Vérification de la signature Stripe sur chaque webhook (`Stripe-Signature` header)
-- Traitement asynchrone des webhooks via Messenger (évite les timeouts)
-- Idempotence : un même événement Stripe traité une seule fois
-- Validation des prix côté serveur (jamais confiance au front)
-- CSRF sur les formulaires
-- CORS configuré par variable d'environnement
+- **Stripe** — Vérification de la signature sur chaque webhook, idempotence via `StripeEventLog`
+- **Webhooks** — Traitement asynchrone via Messenger (évite les timeouts)
+- **Prix** — Validation côté serveur uniquement (jamais confiance au front)
+- **Auth** — Login throttling (5/15min), comptes verrouillables, tokens de reset hashés SHA256
+- **Sessions** — HTTPOnly, SameSite=Lax, cookie sécurisé en prod
+- **CSRF** — Protection sur les formulaires admin
+- **CORS** — Configuré par variable d'environnement
+- **Rate limiting** — Sur le checkout (5 requêtes/minute)
+- **Qualité** — Pre-commit hook bloque les commits si lint ou PHPStan échoue
 
 ## CI/CD
 
