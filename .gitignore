@@ -23,6 +23,6 @@ docker-compose.override.yml
 # PR
 .pr-body.md
 
-# Environnement
-.env
-!.env.example
+# Environnement (root .env = secrets Docker, api/.env = defaults Symfony commité)
+/.env
+!/.env.example
