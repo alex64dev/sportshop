@@ -7,12 +7,22 @@ RUN apk add --no-cache \
     zip \
     unzip \
     git \
-    curl
+    curl \
+    libwebp-dev \
+    libjpeg-turbo-dev \
+    libpng-dev \
+    freetype-dev
+
+RUN docker-php-ext-configure gd \
+    --with-webp \
+    --with-jpeg \
+    --with-freetype
 
 RUN docker-php-ext-install \
     intl \
     pdo_pgsql \
-    opcache
+    opcache \
+    gd
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

@@ -6,4 +6,4 @@ parameters:
         - src/Kernel.php
     ignoreErrors:
         - identifier: property.unusedType
-        - identifier: trait.unused
+        - identifier: missingType.generics

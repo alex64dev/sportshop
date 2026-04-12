@@ -1,0 +1,41 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block main %}
+    <div class="row">
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-4">
+                    <div class="text-primary mb-2">
+                        <i class="fa fa-box fa-2x"></i>
+                    </div>
+                    <h5 class="card-title mb-1">Produits</h5>
+                    <p class="text-muted mb-0">Gérer le catalogue</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-4">
+                    <div class="text-success mb-2">
+                        <i class="fa fa-shopping-cart fa-2x"></i>
+                    </div>
+                    <h5 class="card-title mb-1">Commandes</h5>
+                    <p class="text-muted mb-0">Bientôt disponible</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-4">
+                    <div class="text-info mb-2">
+                        <i class="fa fa-chart-line fa-2x"></i>
+                    </div>
+                    <h5 class="card-title mb-1">Statistiques</h5>
+                    <p class="text-muted mb-0">Bientôt disponible</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
