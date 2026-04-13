@@ -1,4 +1,4 @@
-# HandShop — E-commerce associatif avec Stripe
+# SportShop — E-commerce associatif avec Stripe
 
 Boutique en ligne pour un club sportif. Catalogue de produits (maillots, équipements, goodies), panier, paiement sécurisé via Stripe Checkout, gestion des commandes avec webhooks asynchrones, et backoffice d'administration complet.
 
@@ -99,8 +99,8 @@ Le système d'authentification du backoffice reprend les mêmes patterns que le 
 
 ```bash
 # 1. Cloner le projet
-git clone git@github.com:alex64dev/handshop.git
-cd handshop
+git clone git@github.com:alex64dev/sportshop.git
+cd sportshop
 
 # 2. Configurer les variables d'environnement
 cp .env.example .env
@@ -110,7 +110,7 @@ cp .env.example .env
 make install
 
 # 4. Créer un super admin
-docker compose exec php php bin/console app:create-super-admin admin@handshop.dev motdepasse
+docker compose exec php php bin/console app:create-super-admin admin@sportshop.dev motdepasse
 
 # 5. Dans un second terminal, écouter les webhooks Stripe
 make stripe-listen
