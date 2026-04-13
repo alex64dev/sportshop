@@ -20,7 +20,7 @@ install: ## Première installation complète
 	docker compose exec php php bin/console doctrine:database:create --if-not-exists
 	docker compose exec php php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 	@$(MAKE) hooks
-	@echo "$(GREEN)HandShop est prêt !$(RESET)"
+	@echo "$(GREEN)SportShop est prêt !$(RESET)"
 	@echo "  API      → http://localhost:8080/api"
 	@echo "  Frontend → http://localhost:5173"
 	@echo "  MailHog  → http://localhost:8025"
@@ -53,7 +53,7 @@ shell: ## Shell dans le conteneur PHP
 	docker compose exec php sh
 
 db-shell: ## Shell PostgreSQL
-	docker compose exec db psql -U handshop
+	docker compose exec db psql -U sportshop
 
 # ── Qualité de code ──────────────────────────
 lint: ## Linting PHP + JS

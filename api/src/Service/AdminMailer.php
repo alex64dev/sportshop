@@ -30,7 +30,7 @@ class AdminMailer
         $email = (new Email())
             ->from($this->mailFrom)
             ->to((string) $user->getEmail())
-            ->subject('Création de votre compte administrateur — HandShop')
+            ->subject('Création de votre compte administrateur — SportShop')
             ->html($html);
 
         $this->mailer->send($email);
@@ -46,7 +46,7 @@ class AdminMailer
         $email = (new Email())
             ->from($this->mailFrom)
             ->to((string) $user->getEmail())
-            ->subject('Réinitialisation de votre mot de passe — HandShop')
+            ->subject('Réinitialisation de votre mot de passe — SportShop')
             ->html($html);
 
         $this->mailer->send($email);

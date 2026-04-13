@@ -6,14 +6,14 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
-    container_name: handshop-php
+    container_name: sportshop-php
     volumes:
       - ./api:/var/www/api
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
     environment:
       APP_ENV: dev
       APP_SECRET: ${APP_SECRET:-changeme_in_env_file}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://handshop:handshop@db:5432/handshop?serverVersion=16}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://sportshop:sportshop@db:5432/sportshop?serverVersion=16}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-}
@@ -24,14 +24,14 @@ services:
       db:
         condition: service_healthy
     networks:
-      - handshop
+      - sportshop
 
   # ──────────────────────────────────────────────
   # Nginx — reverse proxy
   # ──────────────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
-    container_name: handshop-nginx
+    container_name: sportshop-nginx
     ports:
       - "8080:80"
     volumes:
@@ -40,29 +40,29 @@ services:
     depends_on:
       - php
     networks:
-      - handshop
+      - sportshop
 
   # ──────────────────────────────────────────────
   # PostgreSQL 16 (dev local, Neon en prod)
   # ──────────────────────────────────────────────
   db:
     image: postgres:16-alpine
-    container_name: handshop-db
+    container_name: sportshop-db
     environment:
-      POSTGRES_DB: handshop
-      POSTGRES_USER: handshop
-      POSTGRES_PASSWORD: handshop
+      POSTGRES_DB: sportshop
+      POSTGRES_USER: sportshop
+      POSTGRES_PASSWORD: sportshop
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U handshop"]
+      test: ["CMD-SHELL", "pg_isready -U sportshop"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - handshop
+      - sportshop
 
   # ──────────────────────────────────────────────
   # Frontend — React + Vite
@@ -71,7 +71,7 @@ services:
     build:
       context: ./front
       dockerfile: Dockerfile
-    container_name: handshop-front
+    container_name: sportshop-front
     ports:
       - "5173:5173"
     volumes:
@@ -81,23 +81,23 @@ services:
       VITE_API_URL: http://localhost:8080/api
       VITE_STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-}
     networks:
-      - handshop
+      - sportshop
 
   # ──────────────────────────────────────────────
   # MailHog — emails en dev
   # ──────────────────────────────────────────────
   mailhog:
     image: mailhog/mailhog:latest
-    container_name: handshop-mailhog
+    container_name: sportshop-mailhog
     ports:
       - "1025:1025"
       - "8025:8025"
     networks:
-      - handshop
+      - sportshop
 
 volumes:
   db_data:
 
 networks:
-  handshop:
+  sportshop:
     driver: bridge

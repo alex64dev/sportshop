@@ -22,7 +22,7 @@ class DashboardController extends AbstractDashboardController
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('HandShop')
+            ->setTitle('SportShop')
             ->setFaviconPath('favicon.svg')
             ->setLocales(['fr']);
     }
